@@ -1,0 +1,188 @@
+/* Sun-kissed, calm Schoology dashboard replica */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0; padding: 0;
+    background: #fff9f4;
+    color: #4a3c31;
+}
+
+header {
+    background: #ffbb33;
+    padding: 1.5em 2em;
+    box-shadow: 0 3px 8px rgba(255, 187, 51, 0.3);
+}
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.topbar h1 {
+    margin: 0;
+    font-weight: 700;
+    color: #663300;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.8em;
+    color: #663300;
+    font-weight: 600;
+}
+
+.user-profile img {
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    box-shadow: 0 0 8px rgba(255, 187, 51, 0.6);
+}
+
+.container {
+    display: flex;
+    min-height: calc(100vh - 88px);
+}
+
+.sidebar {
+    width: 220px;
+    background: #fff3d1;
+    padding: 2em 1em;
+    box-shadow: 2px 0 6px rgba(255, 187, 51, 0.15);
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar ul li + li {
+    margin-top: 1.2em;
+}
+
+.sidebar a {
+    text-decoration: none;
+    color: #663300;
+    font-weight: 600;
+    padding: 0.5em 1em;
+    display: block;
+    border-radius: 6px;
+    transition: background 0.3s ease;
+}
+
+.sidebar a:hover,
+.sidebar a.active {
+    background: #ffbb33;
+    color: #fff9f4;
+}
+
+main {
+    flex-grow: 1;
+    padding: 2em 3em;
+    background: #fff9f4;
+}
+
+.courses h2,
+.announcements h2 {
+    margin-top: 0;
+    font-weight: 700;
+    color: #b36b00;
+    border-bottom: 2px solid #ffbb33;
+    padding-bottom: 0.5em;
+}
+
+.course-cards {
+    display: flex;
+    gap: 2em;
+    flex-wrap: wrap;
+    margin-top: 1em;
+}
+
+.course-card {
+    background: #fff3d1;
+    border-top: 6px solid #ffbb33;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(255, 187, 51, 0.25);
+    padding: 1.5em;
+    width: 280px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.course-card h3 {
+    margin-top: 0;
+    margin-bottom: 0.5em;
+}
+
+.progress-bar {
+    background: #f5deb3;
+    border-radius: 10px;
+    overflow: hidden;
+    height: 12px;
+    margin: 1em 0;
+}
+
+.progress {
+    height: 100%;
+    border-radius: 10px 0 0 10px;
+}
+
+.course-card small {
+    color: #7a5922;
+    font-weight: 600;
+}
+
+.announcements ul {
+    margin: 1em 0 0 1em;
+}
+
+.announcements li {
+    margin-bottom: 0.8em;
+    font-size: 0.9rem;
+    color: #5a421a;
+}
+
+footer {
+    background: #ffbb33;
+    padding: 1.2em;
+    text-align: center;
+    font-weight: 600;
+    color: #663300;
+    box-shadow: 0 -3px 8px rgba(255, 187, 51, 0.3);
+}
+
+/* Responsive softness */
+
+@media (max-width: 700px) {
+    .container {
+        flex-direction: column;
+    }
+    .sidebar {
+        width: 100%;
+        display: flex;
+        overflow-x: auto;
+        padding: 1em 0.5em;
+    }
+    .sidebar ul {
+        display: flex;
+        gap: 1.5em;
+        justify-content: center;
+    }
+    main {
+        padding: 1em 1.5em 2em;
+    }
+    .course-cards {
+        flex-direction: column;
+        gap: 1.5em;
+    }
+    .course-card {
+        width: 100%;
+    }
+}
