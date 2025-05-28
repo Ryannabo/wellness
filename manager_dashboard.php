@@ -57,8 +57,8 @@ try {
     $stats_stmt = $pdo->prepare("
         SELECT 
             COUNT(*) as total,
-            SUM(CASE WHEN status_id = 'completed' THEN 1 ELSE 0 END) as completed,
-            SUM(CASE WHEN status_id != 'completed' AND due_date < CURDATE() THEN 1 ELSE 0 END) as overdue,
+            SUM(CASE WHEN status_id = '3' THEN 1 ELSE 0 END) as completed,
+            SUM(CASE WHEN status_id != '3' AND due_date < CURDATE() THEN 1 ELSE 0 END) as overdue,
             (SELECT COUNT(*) FROM users WHERE role_id = (SELECT id FROM roles WHERE name = 'employee')) as team_size
         FROM tasks
         WHERE created_by = ?
@@ -66,18 +66,14 @@ try {
     $stats_stmt->execute([$user_id]);
     $statistics = $stats_stmt->fetch(PDO::FETCH_ASSOC);
 
- $approval_stmt = $pdo->prepare("
-    SELECT t.*, u.name AS employee_name
-    FROM tasks t
-    JOIN users u ON t.assigned_to = u.id
-    JOIN roles ur ON u.id = ur.id
-    WHERE t.status_id = 4
-      AND ur.id = 3
-");
-$approval_stmt->execute();
-$pending_approvals = $approval_stmt->fetchAll(PDO::FETCH_ASSOC);
-
-
+    $approval_stmt = $pdo->prepare("
+        SELECT t.*, u.name AS employee_name
+        FROM tasks t
+        JOIN users u ON t.assigned_to = u.id
+        WHERE t.status_id = 4
+    ");
+    $approval_stmt->execute();
+    $pending_approvals = $approval_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 
 } catch(PDOException $e) {
@@ -121,6 +117,73 @@ if (empty($_SESSION['csrf_token'])) {
         .in_progress { background-color: #3b82f6; }
         .completed { background-color: #10b981; }
         .overdue { background-color: #ef4444; }
+
+        .task-card {
+    background-color: #ffffff; /* White background for the task card */
+    border: 1px solid #e2e8f0; /* Light gray border */
+    border-radius: 8px; /* Rounded corners */
+    padding: 16px; /* Padding inside the card */
+    margin-bottom: 16px; /* Space between cards */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    transition: transform 0.2s; /* Smooth transition for hover effect */
+}
+
+.task-card:hover {
+    transform: translateY(-2px); /* Lift effect on hover */
+}
+
+.task-card h3 {
+    font-size: 1.25rem; /* Larger font size for the title */
+    color: #2d3748; /* Dark gray color for the title */
+    margin-bottom: 8px; /* Space below the title */
+}
+
+.task-card p {
+    margin: 4px 0; /* Space between paragraphs */
+    color: #4a5568; /* Medium gray color for text */
+}
+
+.task-card strong {
+    color: #2b6cb0; /* Blue color for strong text */
+}
+
+form {
+    margin-top: 12px; /* Space above the forms */
+}
+
+button {
+    background-color: #3182ce; /* Blue background for buttons */
+    color: white; /* White text color */
+    border: none; /* No border */
+    border-radius: 4px; /* Rounded corners */
+    padding: 8px 12px; /* Padding inside the button */
+    cursor: pointer; /* Pointer cursor on hover */
+    transition: background-color 0.2s; /* Smooth transition for hover effect */
+}
+
+button:hover {
+    background-color: #2b6cb0; /* Darker blue on hover */
+}
+
+.btn-danger {
+    background-color: #e53e3e; /* Red background for reject button */
+}
+
+.btn-danger:hover {
+    background-color: #c53030; /* Darker red on hover */
+}
+
+@media (max-width: 640px) {
+    .task-card {
+        padding: 12px; /* Less padding on smaller screens */
+    }
+
+    button {
+        width: 100%; /* Full width buttons on small screens */
+        margin-top: 8px; /* Space above buttons */
+    }
+}
+
     </style>
 </head>
 <body class="bg-gray-50">
@@ -241,20 +304,6 @@ if (empty($_SESSION['csrf_token'])) {
                                                 <option value="3" <?= $task['status_id'] == 3 ? 'selected' : '' ?>>Completed</option>
                                             </select>
                                         </form>
-
-                                        <h2>Pending Task Approvals</h2>
-                                        <?php if (empty($pending_approvals)): ?>
-                                            <p>No completion requests at the moment.</p>
-                                        <?php else: ?>
-                                            <?php foreach ($pending_approvals as $task): ?>
-                                                <div class="task-card">
-                                                    <form method="POST" action="approve_task.php" style="display:inline;">
-                                                        <input type="hidden" name="task_id" value="<?= $task['id'] ?>">
-                                                        <input type="hidden" name="action" value="approve">
-                                                        <button type="submit" class="btn btn-success">Approve</button>
-                                                    </form>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center space-x-4">
@@ -282,56 +331,29 @@ if (empty($_SESSION['csrf_token'])) {
                         </table>
                     </div>
                 <?php endif; ?>
-
                 <h2>Pending Task Approvals</h2>
-<?php if (empty($pending_approvals)): ?>
-    <p>No completion requests at the moment.</p>
-<?php else: ?>
-    <?php foreach ($pending_approvals as $task): ?>
-        <div class="task-card">...</div>
-    <?php endforeach; ?>
-<?php endif; ?>
-<!-- Pending Approvals Section -->
-<div class="mt-8 bg-white rounded-lg shadow">
-    <div class="px-6 py-4 border-b bg-gray-50">
-        <h3 class="text-lg font-semibold text-gray-800">Pending Task Approvals</h3>
-    </div>
-    <div class="p-6">
-        <?php if (empty($pending_approvals)): ?>
-            <p class="text-gray-600">No completion requests at the moment.</p>
-        <?php else: ?>
-            <ul class="space-y-4">
-                <?php foreach ($pending_approvals as $approval): ?>
-                    <li class="bg-gray-50 p-4 rounded shadow-sm flex justify-between items-center">
-                        <div>
-                            <p class="font-semibold"><?= htmlspecialchars($approval['title']) ?></p>
-                            <p class="text-sm text-gray-500">Requested by: <?= htmlspecialchars($approval['employee_name']) ?></p>
-                        </div>
-                        <div class="space-x-2">
-                            <form method="POST" action="approve_task.php" class="inline">
-                                <input type="hidden" name="task_id" value="<?= $approval['id'] ?>">
-                                <input type="hidden" name="action" value="approve">
-                                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                                <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">
-                                    Approve
-                                </button>
-                            </form>
-                            <form method="POST" action="approve_task.php" class="inline">
-                                <input type="hidden" name="task_id" value="<?= $approval['id'] ?>">
-                                <input type="hidden" name="action" value="reject">
-                                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                                <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">
-                                    Reject
-                                </button>
-                            </form>
-                        </div>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-        <?php endif; ?>
-    </div>
-</div>
-
+                                        <?php if (empty($pending_approvals)): ?>
+                                            <p>No completion requests at the moment.</p>
+                                        <?php else: ?>
+                                            <?php foreach ($pending_approvals as $task): ?>
+                                                <div class="task-card">
+                                                    <h3><?= htmlspecialchars($task['title']) ?></h3>
+                                                    <p><strong>Employee:</strong> <?= htmlspecialchars($task['employee_name']) ?></p>
+                                                    <p><strong>Description:</strong> <?= nl2br(htmlspecialchars($task['description'])) ?></p>
+                                                    <p><strong>Due Date:</strong> <?= htmlspecialchars($task['due_date']) ?></p>
+                                                    <form method="post" action="approve_task.php">
+                                                        <input type="hidden" name="task_id" value="<?= htmlspecialchars($task['id']) ?>">
+                                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                                                        <button type="submit" name="approve">Approve</button>
+                                                    </form>
+                                                    <form method="POST" action="approve_task.php" style="display:inline;">
+                                                        <input type="hidden" name="task_id" value="<?= $task['id'] ?>">
+                                                        <input type="hidden" name="action" value="reject">
+                                                        <button type="submit" class="btn btn-danger">Reject</button>
+                                                    </form>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
             </div>
         </main>
     </div>
