@@ -66,14 +66,18 @@ try {
     $stats_stmt->execute([$user_id]);
     $statistics = $stats_stmt->fetch(PDO::FETCH_ASSOC);
 
-    $approval_stmt = $pdo->prepare("
-        SELECT t.*, u.name AS employee_name
-        FROM tasks t
-        JOIN users u ON t.assigned_to = u.id
-        WHERE t.status_id = 4
-    ");
-    $approval_stmt->execute();
-    $pending_approvals = $approval_stmt->fetchAll(PDO::FETCH_ASSOC);
+ $approval_stmt = $pdo->prepare("
+    SELECT t.*, u.name AS employee_name
+    FROM tasks t
+    JOIN users u ON t.assigned_to = u.id
+    JOIN roles ur ON u.id = ur.id
+    WHERE t.status_id = 4
+      AND ur.id = 3
+");
+$approval_stmt->execute();
+$pending_approvals = $approval_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
 
 
 } catch(PDOException $e) {
@@ -249,12 +253,6 @@ if (empty($_SESSION['csrf_token'])) {
                                                         <input type="hidden" name="action" value="approve">
                                                         <button type="submit" class="btn btn-success">Approve</button>
                                                     </form>
-                                                    <form method="POST" action="approve_task.php" style="display:inline;">
-                                                        <input type="hidden" name="task_id" value="<?= $task['id'] ?>">
-                                                        <input type="hidden" name="action" value="reject">
-                                                        <button type="submit" class="btn btn-danger">Reject</button>
-                                                    </form>
-                                                </div>
                                             <?php endforeach; ?>
                                         <?php endif; ?>
                                     </td>
@@ -284,6 +282,56 @@ if (empty($_SESSION['csrf_token'])) {
                         </table>
                     </div>
                 <?php endif; ?>
+
+                <h2>Pending Task Approvals</h2>
+<?php if (empty($pending_approvals)): ?>
+    <p>No completion requests at the moment.</p>
+<?php else: ?>
+    <?php foreach ($pending_approvals as $task): ?>
+        <div class="task-card">...</div>
+    <?php endforeach; ?>
+<?php endif; ?>
+<!-- Pending Approvals Section -->
+<div class="mt-8 bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b bg-gray-50">
+        <h3 class="text-lg font-semibold text-gray-800">Pending Task Approvals</h3>
+    </div>
+    <div class="p-6">
+        <?php if (empty($pending_approvals)): ?>
+            <p class="text-gray-600">No completion requests at the moment.</p>
+        <?php else: ?>
+            <ul class="space-y-4">
+                <?php foreach ($pending_approvals as $approval): ?>
+                    <li class="bg-gray-50 p-4 rounded shadow-sm flex justify-between items-center">
+                        <div>
+                            <p class="font-semibold"><?= htmlspecialchars($approval['title']) ?></p>
+                            <p class="text-sm text-gray-500">Requested by: <?= htmlspecialchars($approval['employee_name']) ?></p>
+                        </div>
+                        <div class="space-x-2">
+                            <form method="POST" action="approve_task.php" class="inline">
+                                <input type="hidden" name="task_id" value="<?= $approval['id'] ?>">
+                                <input type="hidden" name="action" value="approve">
+                                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                                <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">
+                                    Approve
+                                </button>
+                            </form>
+                            <form method="POST" action="approve_task.php" class="inline">
+                                <input type="hidden" name="task_id" value="<?= $approval['id'] ?>">
+                                <input type="hidden" name="action" value="reject">
+                                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                                <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">
+                                    Reject
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </div>
+</div>
+
             </div>
         </main>
     </div>
