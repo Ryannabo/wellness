@@ -709,9 +709,38 @@ if (empty($_SESSION['csrf_token'])) {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+   
+        .flash-message {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 12px 16px;
+    border: 1px solid #c3e6cb;
+    border-radius: 8px;
+    margin: 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.95rem;
+    animation: fade-in 0.5s ease;
+}
+
+.flash-message.success i {
+    color: #28a745;
+}
+
     </style>
 </head>
 <body>
+
+<?php if (!empty($_SESSION['flash_message'])): ?>
+    <div class="flash-message success">
+        <i class="fas fa-check-circle"></i>
+        <?= htmlspecialchars($_SESSION['flash_message']) ?>
+    </div>
+    <?php unset($_SESSION['flash_message']); ?>
+<?php endif; ?>
+
+
     <header class="dashboard-header">
         <div class="header-content">
             <div class="brand">
@@ -729,9 +758,6 @@ if (empty($_SESSION['csrf_token'])) {
                 </a>
                 <a href="attendance_dashboard.php" class="nav-item">
                     <i class="fas fa-clock"></i> Attendance
-                </a>
-                <a href="promotion_create.php" class="nav-item">
-                    <i class="fas fa-trophy"></i> Promotion
                 </a>
                 <a href="#" class="nav-item">
                     <i class="fas fa-bell"></i> Notifications
@@ -944,6 +970,6 @@ if (empty($_SESSION['csrf_token'])) {
                 });
             });
         });
-    </script>
+    </script>   
 </body>
 </html>

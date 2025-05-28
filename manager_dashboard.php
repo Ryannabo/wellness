@@ -2,6 +2,10 @@
 session_start();
 require __DIR__ . '/db.php';
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Strict error reporting
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -346,10 +350,10 @@ button:hover {
                                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                                                         <button type="submit" name="approve">Approve</button>
                                                     </form>
-                                                    <form method="POST" action="approve_task.php" style="display:inline;">
-                                                        <input type="hidden" name="task_id" value="<?= $task['id'] ?>">
-                                                        <input type="hidden" name="action" value="reject">
-                                                        <button type="submit" class="btn btn-danger">Reject</button>
+                                                    <form method="POST" action="reject_task.php">
+                                                        <input type="hidden" name="task_id" value="<?= htmlspecialchars($task['id']) ?>">
+                                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                                                        <button type="submit" class="btn btn-danger btn-sm">Reject</button>
                                                     </form>
                                                 </div>
                                             <?php endforeach; ?>

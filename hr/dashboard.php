@@ -443,6 +443,9 @@ try {
                 <a class="nav-item" href="manage_promotions.php">
                     <i class="fas fa-arrow-up"></i> Promotions
                 </a>
+                <a class="nav-item" href="received_evaluation.php">
+                    <i class="fa-solid fa-envelope"></i> Evaluations
+                </a>
                 <a class="nav-item" href="view_records.php">
                     <i class="fas fa-file-alt"></i> Records
                 </a>

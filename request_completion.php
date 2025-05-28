@@ -18,6 +18,9 @@ $user_id = $_SESSION['user_id'];
 $stmt = $pdo->prepare("UPDATE tasks SET status_id = 4 WHERE id = ? AND assigned_to = ?");
 $stmt->execute([$task_id, $user_id]);
 
-header("Location: user_dashboard.php");
+$_SESSION['flash_message'] = 'Task submitted for approval successfully.';
+
+header('Location: user_dashboard.php'); // Redirect back to dashboard or task page
+
 exit();
 ?>

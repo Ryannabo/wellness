@@ -36,12 +36,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Get the "completed" status id from task_statuses table
     $status_stmt = $pdo->prepare("SELECT id FROM task_statuses WHERE value = 'completed' LIMIT 1");
-    $status_stmt->execute();
+    if (!$status_stmt || !$status_stmt->execute()) {
+        die("Failed to fetch task status.");
+    }
     $completed_status = $status_stmt->fetchColumn();
 
     if (!$completed_status) {
         die("Completed status not found in database.");
     }
+
 
     // Update task status to completed
     $update_stmt = $pdo->prepare("UPDATE tasks SET status_id = ? WHERE id = ?");
@@ -55,3 +58,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // If not POST, deny access
 die("Invalid request method.");
+
+   // In request_completion.php after processing the request
+   session_start();
+   $_SESSION['success'] = "Request has been sent!";
+   header("Location: user_dashboard.php");
+   exit();
