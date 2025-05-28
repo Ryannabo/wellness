@@ -19,9 +19,9 @@ $managers = [];
 
 $result = $conn->query("SELECT id, username, role_id FROM users");
 while ($row = $result->fetch_assoc()) {
-    if ($row['role_id'] === 'employee') {
+    if ($row['role_id'] === '2') {
         $employees[] = $row;
-    } elseif ($row['role_id'] === 'manager') {
+    } elseif ($row['role_id'] === '3') {
         $managers[] = $row;
     }
 }
@@ -88,7 +88,7 @@ while ($row = $result->fetch_assoc()) {
     <script>
         function handleEvaluationTypeChange(value) {
             document.getElementById('employeeDropdown').style.display =
-                (value === 'Employee to Employee' || value === 'Manager to Employee') ? 'block' : 'none';
+                (value === 'Manager to Employee') ? 'block' : 'none';
             document.getElementById('managerDropdown').style.display =
                 (value === 'Employee to Manager') ? 'block' : 'none';
         }
@@ -99,7 +99,6 @@ while ($row = $result->fetch_assoc()) {
 <h1>General Productivity Evaluation Tool</h1>
 <form action="submit_evaluation.php" method="POST">
     <div class="section">
-        <label><input type="radio" name="evaluation_type" value="Employee to Employee" onclick="handleEvaluationTypeChange(this.value)" required> Employee to Employee</label>
         <label><input type="radio" name="evaluation_type" value="Manager to Employee" onclick="handleEvaluationTypeChange(this.value)"> Manager to Employee</label>
         <label><input type="radio" name="evaluation_type" value="Self-Evaluation" onclick="handleEvaluationTypeChange(this.value)"> Self-Evaluation</label>
     </div>

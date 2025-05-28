@@ -46,6 +46,10 @@ try {
             $role_id = (int)$_POST['role_id'];
             $gender_id = (int)$_POST['gender_id'];
             $email = trim($_POST['email']);
+            $name = trim($_POST['name']);
+            $address = trim($_POST['address']);
+            $birthday = $_POST["birthday"];
+            
 
             //gender
             if (empty($username) || empty($password) || empty($contact_number) || empty($emergency_number) || empty($role_id) || empty($gender_id)) {
@@ -76,8 +80,8 @@ try {
             $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
             // Insert user (you need to include these fields in the DB)
-            $stmt = $pdo->prepare("INSERT INTO users (username, password, contact_number, emergency_number, role_id, gender_id) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$username, $passwordHash, $contact_number, $emergency_number, $role_id, $gender_id]);
+            $stmt = $pdo->prepare("INSERT INTO users (username, password, email, name, address, birthday, contact_number, emergency_number, role_id, gender_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$username, $passwordHash, $email, $name, $address,$birthday, $contact_number, $emergency_number, $role_id, $gender_id]);
 
 
             $_SESSION['success'] = "User created successfully!";
@@ -101,10 +105,10 @@ try {
 
         // Update task status
         if (isset($_POST['update_task'])) {
-            $task_id = (int)$_POST['task_id'];
-            $status = $_POST['status_id'];
+            $taskId = (int)$_POST['task_id'];
+            $statusId = $_POST['status_id'];
             $stmt = $pdo->prepare("UPDATE tasks SET status_id = ? WHERE id = ?");
-            $stmt->execute([$status, $task_id]);
+            $stmt->execute([$statusId, $taskId]);
             $_SESSION['success'] = "Task status updated successfully!";
             header("Location: admin_dashboard.php");
             exit();
@@ -429,12 +433,12 @@ $roles = $roles ?? [];
                 <form method="POST">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
             <!-- Common fields -->
+            <input type="text" name="name" required placeholder="name">
+            <input type="text" name="address" required placeholder="address">
+            <input type="date" name="birthday" required placeholder="birthday">
             <input type="text" name="username" required placeholder="Username">
             <input type="password" name="password" required placeholder="Password">
-
             <input type="email" name="email" required placeholder="Email Address">
-
-            <!-- Contact & Emergency Number (visible for all, or show only if admin selected) -->
             <input type="text" name="contact_number" required placeholder="Contact Number (11 digits)">
             <input type="text" name="emergency_number" required placeholder="Emergency Number (11 digits)">
 
@@ -449,6 +453,7 @@ $roles = $roles ?? [];
                 ?>
             </select>
 
+            <!--Roles dropdown -->
 
             <select name="role_id" required>
                 <option value="">Select Role</option>
@@ -537,9 +542,9 @@ $roles = $roles ?? [];
                                     <input type="hidden" name="update_task" value="1" />
                                     <input type="hidden" name="task_id" value="<?= $task['id'] ?>" />
                                     <select name="status_id" onchange="this.form.submit()">
-                                        <option value="pending" <?= $task['status_id'] === 'pending' ? 'selected' : '' ?>>Pending</option>
-                                        <option value="in_progress" <?= $task['status_id'] === 'in_progress' ? 'selected' : '' ?>>In Progress</option>
-                                        <option value="completed" <?= $task['status_id'] === 'completed' ? 'selected' : '' ?>>Completed</option>
+                                        <option value="1" <?= $task['status_id'] == 1 ? 'selected' : '' ?>>Pending</option>
+                                        <option value="2" <?= $task['status_id'] == 2 ? 'selected' : '' ?>>In Progress</option>
+                                        <option value="3" <?= $task['status_id'] == 3 ? 'selected' : '' ?>>Completed</option>
                                     </select>
                                 </form>
                             </td>

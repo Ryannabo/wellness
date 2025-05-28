@@ -43,27 +43,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $form_data = [
                 'title' => trim($_POST['title']),
                 'description' => trim($_POST['description']),
-                'assigned_to' => (int)$_POST['assigned_to'],
+                'assigned_to' => $_POST['assigned_to'], // keep as string
                 'due_date' => $_POST['due_date']
             ];
 
             // Validate required fields
             if (empty($form_data['title']) || empty($form_data['description']) || empty($form_data['due_date'])) {
                 throw new Exception("All fields marked with * are required");
-            }
-
-            // Validate employee exists (updated query)
-            $stmt = $pdo->prepare("
-                SELECT users.id 
-                FROM users 
-                JOIN roles ON users.role_id = roles.id 
-                WHERE users.id = ? 
-                AND roles.value = 'employee'
-                AND users.status_id = 1
-            ");
-            $stmt->execute([$form_data['assigned_to']]);
-            if (!$stmt->fetch()) {
-                throw new Exception("Invalid employee selected");
             }
 
             // Get the status_id for 'pending'
@@ -77,30 +63,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $status_id = $status['id'];
 
+            // Check if assigning to all employees
+            if ($form_data['assigned_to'] === 'all') {
+                // Get all active employees
+                $stmt = $pdo->prepare("
+                    SELECT users.id 
+                    FROM users 
+                    JOIN roles ON users.role_id = roles.id 
+                    WHERE roles.value = 'employee' 
+                    AND users.status_id = 1
+                ");
+                $stmt->execute();
+                $employees = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-            // Insert task (fixed column order)
-            $stmt = $pdo->prepare("
-                INSERT INTO tasks 
-                (title, description, assigned_to, created_by, due_date, status_id) 
-                VALUES (?, ?, ?, ?, ?, ?)
-            ");
-            
-            $stmt->execute([
-                htmlspecialchars($form_data['title']), 
-                htmlspecialchars($form_data['description']), 
-                $form_data['assigned_to'],
-                $_SESSION['user_id'],
-                $form_data['due_date'],
-                $status_id
-            ]);
-            
-            
+                if (empty($employees)) {
+                    throw new Exception("No active employees found to assign the task");
+                }
+
+                // Insert a task for each employee
+                $stmt = $pdo->prepare("
+                    INSERT INTO tasks (title, description, assigned_to, created_by, due_date, status_id)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ");
+                foreach ($employees as $emp_id) {
+                    $stmt->execute([
+                        htmlspecialchars($form_data['title']),
+                        htmlspecialchars($form_data['description']),
+                        $emp_id,
+                        $_SESSION['user_id'],
+                        $form_data['due_date'],
+                        $status_id
+                    ]);
+                }
+            } else {
+                // Single employee validation
+                $stmt = $pdo->prepare("
+                    SELECT users.id 
+                    FROM users 
+                    JOIN roles ON users.role_id = roles.id 
+                    WHERE users.id = ? 
+                    AND roles.value = 'employee'
+                    AND users.status_id = 1
+                ");
+                $stmt->execute([(int)$form_data['assigned_to']]);
+                if (!$stmt->fetch()) {
+                    throw new Exception("Invalid employee selected");
+                }
+
+                // Insert task for single employee
+                $stmt = $pdo->prepare("
+                    INSERT INTO tasks (title, description, assigned_to, created_by, due_date, status_id) 
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ");
+                $stmt->execute([
+                    htmlspecialchars($form_data['title']),
+                    htmlspecialchars($form_data['description']),
+                    (int)$form_data['assigned_to'],
+                    $_SESSION['user_id'],
+                    $form_data['due_date'],
+                    $status_id
+                ]);
+            }
+
             // Regenerate CSRF token and redirect
             unset($_SESSION['csrf_token']);
             $_SESSION['success'] = "Task created successfully!";
             header("Location: manager_dashboard.php");
             exit();
-            
+
         } catch (PDOException $e) {
             $error = "Database Error: " . $e->getMessage();
         } catch (Exception $e) {
@@ -111,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Fetch data
 try {
-    // Get active employees (updated query)
+    // Get active employees
     $stmt = $pdo->prepare("
         SELECT users.id, users.name, users.email 
         FROM users 
@@ -139,6 +169,11 @@ try {
     $error = "Database Error: " . $e->getMessage();
 }
 ?>
+
+<!-- Keep the HTML part exactly as it was -->
+
+<!-- HTML below remains unchanged -->
+
 
 <!-- Keep the HTML part exactly as it was -->
 

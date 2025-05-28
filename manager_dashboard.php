@@ -241,15 +241,11 @@ if (empty($_SESSION['csrf_token'])) {
                                                title="Edit Task">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <form method="POST" action="delete_task.php" class="inline">
-                                                <input type="hidden" name="task_id" value="<?= $task['id'] ?>">
-                                                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                                                <button type="submit" 
-                                                        class="text-red-600 hover:text-red-800"
-                                                        title="Delete Task"
-                                                        onclick="return confirm('Are you sure you want to delete this task?')">
+                                            <a href="delete_task.php?id=<?= $task['id'] ?>&csrf_token=<?= $_SESSION['csrf_token'] ?>"
+                                                    class="text-red-600 hover:text-red-800"
+                                                    onclick="return confirm('Are you sure you want to delete this task?\nThis action cannot be undone.')">
                                                     <i class="fas fa-trash"></i>
-                                                </button>
+                                                </a>
                                             </form>
                                         </div>
                                     </td>
