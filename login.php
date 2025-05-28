@@ -5,6 +5,19 @@ error_reporting(E_ALL);
 session_start();
 require_once 'config.php';
 
+// Database credentials
+    $host = 'localhost';
+    $dbname = 'wellness';
+    $user = 'root';
+    $pass = ''; // or your DB password
+
+    try {
+        $pdo = new PDO("mysql:host=$host;dbname=$dbname", $user, $pass);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (PDOException $e) {
+        die("Connection failed: " . $e->getMessage());
+    }
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
@@ -41,11 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     case 'manager':
                         header("Location: manager_dashboard.php");
                         break;
-                    case 'employee':
-                        header("Location: user_dashboard.php");
+                    case 'hr':
+                        header("Location: hr\dashboard.php");
                         break;
                     default:
-                        header("Location: dashboard.php");
+                        header("Location: user_dashboard.php");
                 }
                 exit();
             }

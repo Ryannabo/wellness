@@ -67,37 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception("Default role not found!");
         }
 
-        $role_id = $role_result['id'];
-
-        // Updated INSERT query with correct field names
-        $stmt = $conn->prepare("INSERT INTO users 
-            (name, username, email, gender_id, contact_number, 
-            emergency_number, address, birthday, password, role_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-
-        $user_data = [
-            $otp_record['name'],
-            $otp_record['username'],
-            $otp_record['email'],
-            $gender_id, // Now using gender_id instead of gender string
-            $otp_record['contact_number'],
-            $otp_record['emergency_number'],
-            $otp_record['address'],
-            $otp_record['birthday'],
-            $otp_record['password'],
-            $role_id // Adding required role_id field
-        ];
-
         if (!$stmt->execute($user_data)) {
             throw new Exception("Failed to create user account!");
-        }
-
-        $user_id = $conn->lastInsertId();
-
-        // Delete temporary record
-        $stmt = $conn->prepare("DELETE FROM temp_users WHERE id = ?");
-        if (!$stmt->execute([$otp_record['id']])) {
-            throw new Exception("Failed to clean temporary data!");
         }
 
         $conn->commit();

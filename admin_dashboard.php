@@ -70,6 +70,12 @@ try {
                 throw new Exception("Contact and emergency numbers must be exactly 11 digits.");
             }
 
+            function logAction($employee_id, $type, $action, $conn) {
+            $stmt = $conn->prepare("INSERT INTO audit_logs (employee_id, type, action) VALUES (?, ?, ?)");
+            $stmt->bind_param("iss", $employee_id, $type, $action);
+            $stmt->execute();
+            }
+
             // Check for duplicate username
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE username = ?");
             $stmt->execute([$username]);
@@ -347,26 +353,25 @@ $roles = $roles ?? [];
     color: #4b5563; /* Tailwind's gray-600 */
     }
 
-input[type="date"] {
-  appearance: none;
-  -webkit-appearance: none;
-  background-color: #f9fafb; /* Tailwind's gray-50 */
-  border: 1px solid #d1d5db; /* gray-300 */
-  padding: 0.625rem 0.75rem;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  color: #374151; /* gray-700 */
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
+    input[type="date"] {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: #f9fafb; /* Tailwind's gray-50 */
+    border: 1px solid #d1d5db; /* gray-300 */
+    padding: 0.625rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    color: #374151; /* gray-700 */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    }
 
-input[type="date"]:focus {
-  outline: none;
-  border-color: #3b82f6; /* blue-500 */
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-  background-color: #fff;
-}
-
+    input[type="date"]:focus {
+    outline: none;
+    border-color: #3b82f6; /* blue-500 */
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    background-color: #fff;
+    }
 
     form input[type="text"],
     form input[type="email"],
@@ -443,6 +448,8 @@ input[type="date"]:focus {
     </div>
     <nav>
         <a href="admin_dashboard.php" class="nav-link active"><i class="fas fa-users"></i> Users</a>
+
+        <a href="audit_logs.php" class="nav-link"><i class="fa-solid fa-clipboard"></i> Audit Logs</a>
         
         <a href="logout.php" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </nav>
