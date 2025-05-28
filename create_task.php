@@ -221,9 +221,6 @@ try {
                 <a href="create_task.php" class="block p-4 bg-blue-50 text-blue-700">
                     <i class="fas fa-plus-circle mr-2"></i> Create Task
                 </a>
-                <a href="manage_users.php" class="block p-4 hover:bg-blue-50 text-gray-700">
-                    <i class="fas fa-users-cog mr-2"></i> Manage Team
-                </a>
                 <a href="logout.php" class="block p-4 hover:bg-blue-50 text-gray-700">
                     <i class="fas fa-sign-out-alt mr-2"></i> Logout
                 </a>

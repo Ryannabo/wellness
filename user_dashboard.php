@@ -808,22 +808,19 @@ if (empty($_SESSION['csrf_token'])) {
                         <?= nl2br(htmlspecialchars($task['description'])) ?>
                     </div>
                     <?php endif; ?>
-                    <form method="POST" action="update_status.php" class="task-actions">
-                        <input type="hidden" name="task_id" value="<?= $task['id'] ?>">
-                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                        
-                        <select name="status_id" class="status-select">
-                            <?php foreach ($all_statuses as $status): ?>
-                                <option value="<?= $status['id'] ?>" 
-                                    <?= $status['id'] == $task['status_id'] ? 'selected' : '' ?>>
-                                    <?= ucfirst(str_replace('_', ' ', $status['value'])) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <button type="submit" class="update-btn">
-                            <i class="fas fa-sync-alt"></i> Update Status
-                        </button>
-                    </form>
+                    <?php if ($task['status_name'] === 'in_progress'): ?>
+                        <form method="POST" action="request_completion.php" class="task-actions">
+                            <input type="hidden" name="task_id" value="<?= $task['id'] ?>">
+                            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                            <button type="submit" class="update-btn">
+                                <i class="fas fa-paper-plane"></i> Submit for Completion
+                            </button>
+                        </form>
+                    <?php elseif ($task['status_name'] === 'pending_approval'): ?>
+                        <div class="task-status-message">
+                            <i class="fas fa-hourglass-half"></i> Awaiting Manager Approval
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
             <?php endif; ?>

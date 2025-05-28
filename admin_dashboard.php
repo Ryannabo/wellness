@@ -333,6 +333,41 @@ $roles = $roles ?? [];
         color: var(--dark);
     }
 
+    .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 300px;
+    margin-bottom: 1rem;
+    font-family: 'Inter', sans-serif;
+    }
+
+    .form-group label {
+    font-size: 0.9rem;
+    color: #4b5563; /* Tailwind's gray-600 */
+    }
+
+input[type="date"] {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: #f9fafb; /* Tailwind's gray-50 */
+  border: 1px solid #d1d5db; /* gray-300 */
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  color: #374151; /* gray-700 */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input[type="date"]:focus {
+  outline: none;
+  border-color: #3b82f6; /* blue-500 */
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  background-color: #fff;
+}
+
+
     form input[type="text"],
     form input[type="email"],
     form input[type="password"],
@@ -435,7 +470,10 @@ $roles = $roles ?? [];
             <!-- Common fields -->
             <input type="text" name="name" required placeholder="name">
             <input type="text" name="address" required placeholder="address">
-            <input type="date" name="birthday" required placeholder="birthday">
+            <div class="form-group">
+            <label for="birthday">Birthday</label>
+            <input type="date" name="birthday" id="birthday" required>
+            </div>
             <input type="text" name="username" required placeholder="Username">
             <input type="password" name="password" required placeholder="Password">
             <input type="email" name="email" required placeholder="Email Address">

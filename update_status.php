@@ -2,59 +2,33 @@
 session_start();
 require __DIR__ . '/db.php';
 
-// Validate CSRF token
+// CSRF token check
 if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-    $_SESSION['error'] = "Security verification failed!";
-    header("Location: manager_dashboard.php");
-    exit();
+    die("Invalid CSRF token.");
 }
 
-// Verify user is logged in as manager
+// Input validation
+if (!isset($_POST['task_id'], $_POST['status_id'])) {
+    die("Missing data.");
+}
+
+$task_id = intval($_POST['task_id']);
+$status_id = intval($_POST['status_id']);
+
+// Only managers can update
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'manager') {
-    header("Location: login.php");
-    exit();
+    die("Unauthorized.");
 }
 
 try {
-    // Sanitize inputs
-    $task_id = (int)$_POST['task_id'];
-    $new_status = $_POST['status'];
+    $stmt = $pdo->prepare("UPDATE tasks SET status_id = ? WHERE id = ?");
+    $stmt->execute([$status_id, $task_id]);
 
-    // Validate status value
-    $allowed_statuses = ['pending', 'in_progress', 'completed'];
-    if (!in_array($new_status, $allowed_statuses)) {
-        $_SESSION['error'] = "Invalid task status";
-        header("Location: manager_dashboard.php");
-        exit();
-    }
-
-    // Update task status only for tasks created by this manager
-    $stmt = $pdo->prepare("
-        UPDATE tasks 
-        SET status = :status 
-        WHERE id = :task_id 
-        AND created_by = :manager_id
-    ");
-    
-    $stmt->execute([
-        ':status' => $new_status,
-        ':task_id' => $task_id,
-        ':manager_id' => $_SESSION['user_id']
-    ]);
-
-    // Check if update was successful
-    if ($stmt->rowCount() > 0) {
-        $_SESSION['success'] = "Task status updated to " . ucfirst(str_replace('_', ' ', $new_status));
-    } else {
-        $_SESSION['error'] = "Task not found or you don't have permission";
-    }
-
-    header("Location: manager_dashboard.php");
-    exit();
-
-} catch(PDOException $e) {
-    error_log("Database error: " . $e->getMessage());
-    $_SESSION['error'] = "Error updating task status";
-    header("Location: manager_dashboard.php");
-    exit();
+    $_SESSION['success'] = "Task status updated.";
+} catch (PDOException $e) {
+    error_log("Failed to update status: " . $e->getMessage());
+    $_SESSION['error'] = "Failed to update task.";
 }
+
+header("Location: manager_dashboard.php");
+exit();
