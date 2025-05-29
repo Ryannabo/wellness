@@ -440,6 +440,9 @@ try {
                 <a class="nav-item active" href="dashboard.php">
                     <i class="fas fa-tachometer-alt"></i> Dashboard
                 </a>
+                <a class="nav-item active" href="evaluations_list.php">
+                    <i class="fas fa-tachometer-alt"></i> Evaluation
+                </a>
                 <a class="nav-item" href="hr_promotions.php">
                     <i class="fas fa-arrow-up"></i> Promotions
                 </a>

@@ -217,7 +217,7 @@ class PromotionManager {
 
     /**
      * Debug method to log form data
-     */
+     */h
     public function logFormData($data) {
         $log_file = __DIR__ . '/promotion_debug.log';
         $log_message = date('Y-m-d H:i:s') . " - Form Data: " . print_r($data, true) . "\n";

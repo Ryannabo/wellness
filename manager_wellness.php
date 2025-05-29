@@ -19,9 +19,9 @@ $managers = [];
 
 $result = $conn->query("SELECT id, username, role_id FROM users");
 while ($row = $result->fetch_assoc()) {
-    if ($row['role_id'] === 'employee') {
+    if ($row['role_id'] === '2') {
         $employees[] = $row;
-    } elseif ($row['role_id'] === 'manager') {
+    } elseif ($row['role_id'] === '3') {
         $managers[] = $row;
     }
 }
@@ -398,11 +398,14 @@ while ($row = $result->fetch_assoc()) {
     <script>
         function handleEvaluationTypeChange(value) {
             const employeeDropdown = document.getElementById('employeeDropdown');
-            const managerDropdown = document.getElementById('managerDropdown');
-            
-            employeeDropdown.style.display = (value === 'Employee to Employee' || value === 'Manager to Employee') ? 'block' : 'none';
-            managerDropdown.style.display = (value === 'Employee to Manager') ? 'block' : 'none';
+
+            if (value === 'Manager to Employee') {
+                employeeDropdown.style.display = 'block';
+            } else {
+                employeeDropdown.style.display = 'none';
+            }
         }
+
 
         // Add smooth animations for rating selections
         document.addEventListener('DOMContentLoaded', function() {
@@ -437,22 +440,12 @@ while ($row = $result->fetch_assoc()) {
                 </div>
                 <div class="evaluation-type">
                     <div class="radio-option">
-                        <input type="radio" name="evaluation_type" value="Employee to Employee" id="employee-to-employee" onclick="handleEvaluationTypeChange(this.value)" required>
-                        <label class="radio-label" for="employee-to-employee">
+                        <input type="radio" name="evaluation_type" value="Manager to Employee" id="manager-to-employee" onclick="handleEvaluationTypeChange(this.value)">
+                        <label class="radio-label" for="manager-to-employee">
                             <div class="radio-icon"></div>
                             <div>
-                                <div style="font-weight: 600;">Employee to Employee</div>
-                                <div style="font-size: 0.9rem; opacity: 0.8;">Peer wellness assessment</div>
-                            </div>
-                        </label>
-                    </div>
-                    <div class="radio-option">
-                        <input type="radio" name="evaluation_type" value="Employee to Manager" id="employee-to-manager" onclick="handleEvaluationTypeChange(this.value)">
-                        <label class="radio-label" for="employee-to-manager">
-                            <div class="radio-icon"></div>
-                            <div>
-                                <div style="font-weight: 600;">Employee to Manager</div>
-                                <div style="font-size: 0.9rem; opacity: 0.8;">Evaluate manager's wellness support</div>
+                                <div style="font-weight: 600;">Manager to Employee</div>
+                                <div style="font-size: 0.9rem; opacity: 0.8;">Evaluate team member performance</div>
                             </div>
                         </label>
                     </div>
@@ -462,11 +455,10 @@ while ($row = $result->fetch_assoc()) {
                             <div class="radio-icon"></div>
                             <div>
                                 <div style="font-weight: 600;">Self-Evaluation</div>
-                                <div style="font-size: 0.9rem; opacity: 0.8;">Assess your own wellbeing</div>
+                                <div style="font-size: 0.9rem; opacity: 0.8;">Assess your own performance</div>
                             </div>
                         </label>
                     </div>
-                </div>
             </div>
 
             <!-- Employee Dropdown -->
