@@ -205,8 +205,12 @@ button:hover {
                         <i class="fas fa-plus-circle mr-2"></i>  Productivity Evaluation
                     </a>
                     <a href="manager_wellness.php" 
-                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                         <i class="fas fa-plus-circle mr-2"></i>  Wellness Evaluation
+                    </a>
+                    <a href="promotion_recommendation.php" 
+                    class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-plus-circle mr-2"></i>  Promotion Recommendation
                     </a>
                 
                     <a href="create_task.php" 

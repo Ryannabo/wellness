@@ -27,6 +27,9 @@ switch ($evaluation_type) {
     case 'Manager to Employee':
         $evaluatee_id = $employee_id;
         break;
+    case 'Promotion Recommendation':
+        $evaluatee_id = $employee_id;
+        break;
     case 'Employee to Manager':
         $evaluatee_id = $manager_id;
         break;
