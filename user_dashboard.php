@@ -964,9 +964,6 @@ if (empty($_SESSION['csrf_token'])) {
                 <a href="attendance_dashboard.php" class="nav-item">
                     <i class="fas fa-clock"></i> Attendance
                 </a>
-                <a href="promotion_create.php" class="nav-item">
-                    <i class="fas fa-trophy"></i> Promotion
-                </a>
                 <div class="notification-container">
                     <a href="#" class="nav-item" id="notificationBell">
                         <i class="fas fa-bell"></i>
