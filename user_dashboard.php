@@ -13,6 +13,49 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+// Handle task submission for approval
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_for_approval'])) {
+    $task_id = $_POST['task_id'];
+    $user_id = $_SESSION['user_id'];
+    
+    try {
+        // CSRF token validation
+        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+            throw new Exception("Invalid CSRF token");
+        }
+        
+        // Verify task belongs to user and is in pending or in_progress status
+        $verify_stmt = $pdo->prepare("
+            SELECT t.*, u.name as manager_name 
+            FROM tasks t 
+            JOIN users u ON t.created_by = u.id 
+            WHERE t.id = ? AND t.assigned_to = ? AND (t.status_id = 1 OR t.status_id = 2)
+        ");
+        $verify_stmt->execute([$task_id, $user_id]);
+        $task = $verify_stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($task) {
+            // Update task status to pending approval (status_id = 4)
+            $update_stmt = $pdo->prepare("UPDATE tasks SET status_id = 4 WHERE id = ?");
+            $update_result = $update_stmt->execute([$task_id]);
+            
+            if ($update_result) {
+                $_SESSION['success'] = "Task '{$task['title']}' has been submitted for approval to {$task['manager_name']}.";
+            } else {
+                throw new Exception("Failed to submit task for approval");
+            }
+        } else {
+            $_SESSION['error'] = "Task not found or cannot be submitted for approval.";
+        }
+        
+    } catch (Exception $e) {
+        $_SESSION['error'] = "Failed to submit task: " . $e->getMessage();
+    }
+    
+    header("Location: user_dashboard.php");
+    exit();
+}
+
 try {
     $user_id = $_SESSION['user_id'];
     
@@ -102,6 +145,18 @@ try {
 
 } catch(PDOException $e) {
     die("Database error: " . $e->getMessage());
+}
+
+// Handle session messages
+$success = '';
+$error = '';
+if (isset($_SESSION['success'])) {
+    $success = $_SESSION['success'];
+    unset($_SESSION['success']);
+}
+if (isset($_SESSION['error'])) {
+    $error = $_SESSION['error'];
+    unset($_SESSION['error']);
 }
 
 // Generate CSRF token
@@ -461,6 +516,7 @@ if (empty($_SESSION['csrf_token'])) {
         .status-pending { background: var(--warning); }
         .status-in_progress { background: var(--info); }
         .status-completed { background: var(--success); }
+        .status-pending_approval { background: #8b5cf6; }
 
         .task-header h3 {
             color: var(--gray-800);
@@ -534,6 +590,9 @@ if (empty($_SESSION['csrf_token'])) {
             cursor: pointer;
             transition: var(--transition);
             box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .update-btn:hover {
@@ -543,6 +602,61 @@ if (empty($_SESSION['csrf_token'])) {
 
         .update-btn:active {
             transform: translateY(0);
+        }
+
+        .submit-approval-btn {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .submit-approval-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+        }
+
+        .task-status-message {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: var(--border-radius);
+            color: #7c3aed;
+            font-weight: 500;
+            margin-top: 1rem;
+        }
+
+        .approval-result {
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            margin-top: 1rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .approval-result.approved {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: #059669;
+        }
+
+        .approval-result.rejected {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #dc2626;
         }
 
         /* Sidebar */
@@ -643,6 +757,31 @@ if (empty($_SESSION['csrf_token'])) {
             font-size: 1rem;
         }
 
+        /* Success/Error Messages */
+        .success-message {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
         /* Responsive Design */
         @media (max-width: 1024px) {
             .dashboard-container {
@@ -696,7 +835,7 @@ if (empty($_SESSION['csrf_token'])) {
             pointer-events: none;
         }
 
-        .loading .update-btn {
+        .loading .update-btn, .loading .submit-approval-btn {
             background: var(--gray-400);
         }
 
@@ -709,38 +848,104 @@ if (empty($_SESSION['csrf_token'])) {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-   
-        .flash-message {
-    background-color: #d4edda;
-    color: #155724;
-    padding: 12px 16px;
-    border: 1px solid #c3e6cb;
-    border-radius: 8px;
-    margin: 16px 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.95rem;
-    animation: fade-in 0.5s ease;
-}
 
-.flash-message.success i {
-    color: #28a745;
-}
+        /* Notification Dropdown Styles */
+        .notification-container {
+            position: relative;
+            display: inline-block;
+        }
 
+        .notification-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-xl);
+            width: 320px;
+            margin-top: 0.5rem;
+            display: none;
+            overflow: hidden;
+            z-index: 1000;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .notification-dropdown.show {
+            display: block;
+        }
+
+        .notification-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-200);
+            font-weight: 600;
+            color: var(--gray-700);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .notification-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-200);
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .notification-item:hover {
+            background-color: rgba(99, 102, 241, 0.05);
+        }
+
+        .notification-item.unread {
+            background-color: rgba(99, 102, 241, 0.1);
+            font-weight: 500;
+            border-left: 4px solid var(--primary);
+        }
+
+        .notification-footer {
+            padding: 1rem;
+            text-align: center;
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .mark-all-read {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--border-radius);
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .mark-all-read:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Mobile responsive for dropdown */
+        @media (max-width: 768px) {
+            .notification-dropdown {
+                width: 280px;
+                right: -50px;
+            }
+        }
     </style>
 </head>
 <body>
-
-<?php if (!empty($_SESSION['flash_message'])): ?>
-    <div class="flash-message success">
-        <i class="fas fa-check-circle"></i>
-        <?= htmlspecialchars($_SESSION['flash_message']) ?>
-    </div>
-    <?php unset($_SESSION['flash_message']); ?>
-<?php endif; ?>
-
-
     <header class="dashboard-header">
         <div class="header-content">
             <div class="brand">
@@ -759,12 +964,53 @@ if (empty($_SESSION['csrf_token'])) {
                 <a href="attendance_dashboard.php" class="nav-item">
                     <i class="fas fa-clock"></i> Attendance
                 </a>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-bell"></i> Notifications
-                    <?php if(!empty($notifications)): ?>
-                        <span class="notification-badge"><?= count($notifications) ?></span>
-                    <?php endif; ?>
+                <a href="promotion_create.php" class="nav-item">
+                    <i class="fas fa-trophy"></i> Promotion
                 </a>
+                <div class="notification-container">
+                    <a href="#" class="nav-item" id="notificationBell">
+                        <i class="fas fa-bell"></i>
+                        <?php if(!empty($notifications)): ?>
+                            <span class="notification-badge"><?= count($notifications) ?></span>
+                        <?php endif; ?>
+                    </a>
+                    
+                    <!-- Notification Dropdown -->
+                    <div class="notification-dropdown" id="notificationDropdown">
+                        <div class="notification-header">
+                            <span>Notifications</span>
+                            <?php if(!empty($notifications)): ?>
+                                <button class="mark-all-read" id="markAllRead">Mark all read</button>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <div class="notification-list">
+                            <?php if(empty($notifications)): ?>
+                                <div class="notification-item">
+                                    <span style="color: var(--gray-500); font-style: italic;">No notifications yet</span>
+                                </div>
+                            <?php else: ?>
+                                <?php foreach($notifications as $notification): ?>
+                                    <div class="notification-item <?= $notification['is_read'] ? '' : 'unread' ?>" 
+                                         data-id="<?= $notification['id'] ?>">
+                                        <div style="font-size: 0.875rem; margin-bottom: 0.25rem;">
+                                            <?= htmlspecialchars($notification['message']) ?>
+                                        </div>
+                                        <div style="font-size: 0.75rem; color: var(--gray-500);">
+                                            <?= date('M j, Y g:i A', strtotime($notification['created_at'])) ?>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <div class="notification-footer">
+                            <a href="all_notifications.php" style="color: var(--primary); text-decoration: none; font-size: 0.875rem;">
+                                View all notifications
+                            </a>
+                        </div>
+                    </div>
+                </div>
                 <a href="logout.php" class="nav-item">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
@@ -774,6 +1020,21 @@ if (empty($_SESSION['csrf_token'])) {
 
     <div class="dashboard-container">
         <main class="task-grid">
+            <!-- Success/Error Messages -->
+            <?php if($success): ?>
+            <div class="success-message fade-in">
+                <i class="fas fa-check-circle"></i>
+                <?= htmlspecialchars($success) ?>
+            </div>
+            <?php endif; ?>
+
+            <?php if($error): ?>
+            <div class="error-message fade-in">
+                <i class="fas fa-exclamation-circle"></i>
+                <?= htmlspecialchars($error) ?>
+            </div>
+            <?php endif; ?>
+
             <div class="analytics-grid">
                 <div class="analytic-card fade-in">
                     <div class="analytic-icon">
@@ -834,19 +1095,25 @@ if (empty($_SESSION['csrf_token'])) {
                         <?= nl2br(htmlspecialchars($task['description'])) ?>
                     </div>
                     <?php endif; ?>
-                    <?php if ($task['status_name'] !== 'completed' && $task['status_name'] !== 'pending_approval'): ?>
-                    <form method="POST" action="request_completion.php" class="task-actions">
+                    
+                    <?php if ($task['status_name'] === 'pending' || $task['status_name'] === 'in_progress'): ?>
+                        <form method="POST" class="task-actions">
                             <input type="hidden" name="task_id" value="<?= $task['id'] ?>">
+                            <input type="hidden" name="submit_for_approval" value="1">
                             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                            <button type="submit" class="update-btn">
-                                <i class="fas fa-paper-plane"></i> Submit for Completion
+                            <button type="submit" class="submit-approval-btn" onclick="return confirm('Are you sure you want to submit this task for approval?')">
+                                <i class="fas fa-paper-plane"></i> Submit Task for Approval
                             </button>
-                            <?php elseif ($task['status_name'] === 'pending_approval'): ?>
+                        </form>
+                    <?php elseif ($task['status_name'] === 'pending_approval'): ?>
                         <div class="task-status-message">
                             <i class="fas fa-hourglass-half"></i> Awaiting Manager Approval
                         </div>
+                    <?php elseif ($task['status_name'] === 'completed'): ?>
+                        <div class="approval-result approved">
+                            <i class="fas fa-check-circle"></i> Task Approved & Completed
+                        </div>
                     <?php endif; ?>
-                        </form>
                 </div>
                 <?php endforeach; ?>
             <?php endif; ?>
@@ -917,59 +1184,132 @@ if (empty($_SESSION['csrf_token'])) {
             document.querySelectorAll('form').forEach(form => {
                 form.addEventListener('submit', function() {
                     this.classList.add('loading');
-                    const btn = this.querySelector('.update-btn');
-                    const originalText = btn.innerHTML;
-                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
-                    btn.disabled = true;
-                    
-                    // Re-enable after 3 seconds as fallback
-                    setTimeout(() => {
-                        this.classList.remove('loading');
-                        btn.innerHTML = originalText;
-                        btn.disabled = false;
-                    }, 3000);
-                });
-            });
-
-            // Notification auto-update with enhanced error handling
-            let notificationUpdateInterval;
-            
-            const updateNotifications = async () => {
-                try {
-                    const response = await fetch('get_notifications.php');
-                    if (response.ok) {
-                        const data = await response.text();
-                        const notificationContainer = document.querySelector('#notifications');
-                        if (notificationContainer) {
-                            notificationContainer.innerHTML = data;
-                        }
+                    const btn = this.querySelector('.submit-approval-btn, .update-btn');
+                    if (btn) {
+                        const originalText = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                        btn.disabled = true;
+                        
+                        // Re-enable after 3 seconds as fallback
+                        setTimeout(() => {
+                            this.classList.remove('loading');
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        }, 3000);
                     }
-                } catch (error) {
-                    console.warn('Notification update failed:', error);
-                }
-            };
-
-            // Update notifications every minute
-            notificationUpdateInterval = setInterval(updateNotifications, 60000);
-
-            // Cleanup on page unload
-            window.addEventListener('beforeunload', () => {
-                if (notificationUpdateInterval) {
-                    clearInterval(notificationUpdateInterval);
-                }
-            });
-
-            // Add hover effects for better interactivity
-            document.querySelectorAll('.task-card').forEach(card => {
-                card.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-8px) scale(1.02)';
-                });
-                
-                card.addEventListener('mouseleave', function() {
-                    this.style.transform = 'translateY(0) scale(1)';
                 });
             });
+
+            // Auto-hide success/error messages
+            const successMessage = document.querySelector('.success-message');
+            const errorMessage = document.querySelector('.error-message');
+            
+            if (successMessage) {
+                setTimeout(() => {
+                    successMessage.style.opacity = '0';
+                    setTimeout(() => successMessage.remove(), 300);
+                }, 5000);
+            }
+            
+            if (errorMessage) {
+                setTimeout(() => {
+                    errorMessage.style.opacity = '0';
+                    setTimeout(() => errorMessage.remove(), 300);
+                }, 7000);
+            }
+
+            // Notification dropdown functionality
+            const notificationBell = document.getElementById('notificationBell');
+            const notificationDropdown = document.getElementById('notificationDropdown');
+            let isDropdownOpen = false;
+
+            if (notificationBell && notificationDropdown) {
+                notificationBell.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    isDropdownOpen = !isDropdownOpen;
+                    
+                    if (isDropdownOpen) {
+                        notificationDropdown.classList.add('show');
+                    } else {
+                        notificationDropdown.classList.remove('show');
+                    }
+                });
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (isDropdownOpen && !notificationBell.contains(e.target) && !notificationDropdown.contains(e.target)) {
+                        notificationDropdown.classList.remove('show');
+                        isDropdownOpen = false;
+                    }
+                });
+
+                // Mark notification as read when clicked
+                document.querySelectorAll('.notification-item[data-id]').forEach(item => {
+                    item.addEventListener('click', function() {
+                        const notificationId = this.getAttribute('data-id');
+                        
+                        fetch('get_notifications.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `action=mark_read&notification_id=${notificationId}`
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                this.classList.remove('unread');
+                                
+                                // Update badge count
+                                const badge = document.querySelector('.notification-badge');
+                                if (badge) {
+                                    const currentCount = parseInt(badge.textContent);
+                                    if (currentCount > 1) {
+                                        badge.textContent = currentCount - 1;
+                                    } else {
+                                        badge.remove();
+                                    }
+                                }
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                    });
+                });
+
+                // Mark all as read
+                const markAllReadBtn = document.getElementById('markAllRead');
+                if (markAllReadBtn) {
+                    markAllReadBtn.addEventListener('click', function() {
+                        fetch('get_notifications.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: 'action=mark_all_read'
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Remove all unread classes
+                                document.querySelectorAll('.notification-item.unread').forEach(item => {
+                                    item.classList.remove('unread');
+                                });
+                                
+                                // Remove badge
+                                const badge = document.querySelector('.notification-badge');
+                                if (badge) {
+                                    badge.remove();
+                                }
+                                
+                                // Hide mark all read button
+                                this.style.display = 'none';
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                    });
+                }
+            }
         });
-    </script>   
+    </script>
 </body>
 </html>

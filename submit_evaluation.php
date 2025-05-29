@@ -67,4 +67,4 @@ $stmt->close();
 $conn->close();
 
 // Redirect or success message
-echo "<script>alert('Evaluation submitted successfully!'); window.location.href='evaluation.php';</script>";
+echo "<script>alert('Evaluation submitted successfully!'); window.history.back();</script>";

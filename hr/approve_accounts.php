@@ -1,6 +1,10 @@
 <?php
 session_start();
 require __DIR__ . '/../db.php';
+require_once __DIR__ . '/../NotificationManager.php';
+
+// Initialize notification manager
+$notificationManager = new NotificationManager($pdo);
 
 // Check if user is logged in and is HR
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'hr') {
@@ -47,18 +51,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     1  // active status
                 ]);
                 
+                $new_user_id = $pdo->lastInsertId();
+                
+                // 🔔 SEND NOTIFICATION - Account Approved
+                $notificationManager->notifyAccountApproval($new_user_id);
+                
                 // Delete from temp_users
                 $stmt = $pdo->prepare("DELETE FROM temp_users WHERE id = ?");
                 $stmt->execute([$temp_user_id]);
                 
-                $success = "Account approved successfully! User can now login.";
+                $success = "Account approved successfully! " . htmlspecialchars($temp_user['name']) . " has been notified and can now login.";
             }
         } else {
-            // Reject - just delete from temp_users
-            $stmt = $pdo->prepare("DELETE FROM temp_users WHERE id = ?");
+            // Reject - get user info first
+            $stmt = $pdo->prepare("SELECT email, name FROM temp_users WHERE id = ?");
             $stmt->execute([$temp_user_id]);
+            $temp_user = $stmt->fetch();
             
-            $success = "Account rejected and removed from pending list.";
+            if ($temp_user) {
+                // Delete from temp_users
+                $stmt = $pdo->prepare("DELETE FROM temp_users WHERE id = ?");
+                $stmt->execute([$temp_user_id]);
+                
+                $success = "Account for " . htmlspecialchars($temp_user['name']) . " has been rejected and removed from pending list. Consider sending an email to {$temp_user['email']} with rejection reason.";
+            }
         }
     } catch (PDOException $e) {
         $error = "Error processing account: " . $e->getMessage();
@@ -83,6 +99,7 @@ try {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
+            <style>
         :root {
             --primary: #6366f1;
             --primary-dark: #4f46e5;
@@ -758,6 +775,16 @@ try {
             letter-spacing: 0.5px;
         }
 
+        .notification-badge {
+            background: var(--success);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+            animation: pulse 2s infinite;
+        }
+
         @media (max-width: 768px) {
             .dashboard-container {
                 padding: 1rem;
@@ -787,9 +814,75 @@ try {
                 font-size: 0.875rem;
             }
         }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --gradient-warning: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --gradient-danger: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --border-radius: 16px;
+            --border-radius-lg: 24px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--gradient-primary);
+            min-height: 100vh;
+            color: var(--gray-800);
+            overflow-x: hidden;
+        }
+
+        /* Keep all your existing CSS - it's beautifully designed! */
+        /* I'm truncating this for brevity, but use all your existing styles */
+
+        .notification-badge {
+            background: var(--success);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
     </style>
 </head>
 <body>
+    <!-- Keep all your existing HTML structure -->
     <header class="dashboard-header">
         <div class="header-content">
             <div class="brand">
@@ -834,6 +927,11 @@ try {
         <?php if (isset($success)): ?>
             <div class="alert alert-success">
                 <i class="fas fa-check-circle"></i> <?php echo $success; ?>
+                <?php if (strpos($success, 'approved') !== false): ?>
+                    <span class="notification-badge">
+                        <i class="fas fa-bell"></i> User Notified
+                    </span>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 
@@ -843,6 +941,9 @@ try {
             </div>
         <?php endif; ?>
 
+        <!-- Keep all your existing statistics and account cards HTML -->
+        <!-- Just update the button text to show notification info -->
+        
         <!-- Statistics Row -->
         <div class="stats-row">
             <div class="stat-card">
@@ -920,7 +1021,7 @@ try {
                                     <div class="btn-grid">
                                         <button class="btn btn-success" 
                                                 onclick="showApprovalModal(<?php echo $account['id']; ?>, 'approve', '<?php echo htmlspecialchars($account['name']); ?>')">
-                                            <i class="fas fa-check"></i> Approve Account
+                                            <i class="fas fa-check"></i> Approve & Notify
                                         </button>
                                         <button class="btn btn-danger" 
                                                 onclick="showApprovalModal(<?php echo $account['id']; ?>, 'reject', '<?php echo htmlspecialchars($account['name']); ?>')">
@@ -936,6 +1037,7 @@ try {
         </div>
     </div>
 
+    <!-- Keep your existing modal HTML -->
     <!-- Approval Modal -->
     <div class="modal" id="approvalModal">
         <div class="modal-dialog">
@@ -957,6 +1059,10 @@ try {
                             </div>
                             <p class="modal-message" id="modalMessage"></p>
                             <p class="modal-warning">This action cannot be undone.</p>
+                            <div id="notificationInfo" style="margin-top: 1rem; padding: 1rem; background: rgba(16, 185, 129, 0.1); border-radius: 8px; display: none;">
+                                <i class="fas fa-bell" style="color: var(--success);"></i>
+                                <strong style="color: var(--success);">The user will be automatically notified via the system.</strong>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -968,6 +1074,7 @@ try {
         </div>
     </div>
 
+    <!-- Keep your existing JavaScript -->
     <script>
         function showApprovalModal(tempUserId, action, userName) {
             document.getElementById('tempUserId').value = tempUserId;
@@ -979,14 +1086,16 @@ try {
             const icon = document.getElementById('modalIcon');
             const iconSymbol = document.getElementById('modalIconSymbol');
             const confirmBtn = document.getElementById('confirmBtn');
+            const notificationInfo = document.getElementById('notificationInfo');
             
             if (action === 'approve') {
                 title.textContent = 'Approve Account';
                 message.textContent = `Are you sure you want to approve the account for ${userName}?`;
                 icon.className = 'modal-icon success';
                 iconSymbol.className = 'fas fa-check-circle';
-                confirmBtn.textContent = 'Approve';
+                confirmBtn.textContent = 'Approve & Notify';
                 confirmBtn.className = 'btn btn-success';
+                notificationInfo.style.display = 'block';
             } else {
                 title.textContent = 'Reject Account';
                 message.textContent = `Are you sure you want to reject the account for ${userName}?`;
@@ -994,6 +1103,7 @@ try {
                 iconSymbol.className = 'fas fa-times-circle';
                 confirmBtn.textContent = 'Reject';
                 confirmBtn.className = 'btn btn-danger';
+                notificationInfo.style.display = 'none';
             }
             
             modal.classList.add('show');
@@ -1010,7 +1120,7 @@ try {
             }
         });
 
-        // Add smooth animations on scroll
+        // Keep your existing animation code
         const observerOptions = {
             threshold: 0.1,
             rootMargin: '0px 0px -50px 0px'
@@ -1025,7 +1135,6 @@ try {
             });
         }, observerOptions);
 
-        // Observe all account cards
         document.addEventListener('DOMContentLoaded', function() {
             const cards = document.querySelectorAll('.account-card');
             cards.forEach(card => {

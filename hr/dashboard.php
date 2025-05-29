@@ -440,11 +440,8 @@ try {
                 <a class="nav-item active" href="dashboard.php">
                     <i class="fas fa-tachometer-alt"></i> Dashboard
                 </a>
-                <a class="nav-item" href="manage_promotions.php">
+                <a class="nav-item" href="hr_promotions.php">
                     <i class="fas fa-arrow-up"></i> Promotions
-                </a>
-                <a class="nav-item" href="evaluations_list.php">
-                    <i class="fa-solid fa-envelope"></i> Evaluations
                 </a>
                 <a class="nav-item" href="view_records.php">
                     <i class="fas fa-file-alt"></i> Records
@@ -550,7 +547,7 @@ try {
                     </div>
                     <div class="card-body">
                         <div class="quick-actions">
-                            <a href="manage_promotions.php" class="action-btn">
+                            <a href="hr_promotions.php" class="action-btn">
                                 <i class="fas fa-arrow-up"></i>
                                 <span>Review Promotions</span>
                             </a>
