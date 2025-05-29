@@ -74,28 +74,38 @@ if (isset($_POST['submit_leave_request'])) {
     }
 
     if (empty($errors)) {
-        $stmt = $conn->prepare("INSERT INTO leave_requests 
-            (user_id, leave_type, start_date, end_date, reason) 
-            VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param("sssss", $user_id, $leave_type, $start_date, $end_date, $reason);
-        
-        if ($stmt->execute()) {
-            $_SESSION['success'] = "Leave request submitted successfully!";
-        } else {
-            $_SESSION['error'] = "Error submitting request: " . $stmt->error;
-        }
-        $stmt->close();
+    // Get leave_type_id from leave_types table
+    $stmt = $conn->prepare("SELECT id FROM leave_types WHERE value = ?");
+    $stmt->bind_param("s", $leave_type);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+
+    if (!$row) {
+        // Optional: insert the leave type if not exists
+        $insert_stmt = $conn->prepare("INSERT INTO leave_types (value) VALUES (?)");
+        $insert_stmt->bind_param("s", $leave_type);
+        $insert_stmt->execute();
+        $leave_type_id = $insert_stmt->insert_id;
+        $insert_stmt->close();
     } else {
-        $_SESSION['error'] = implode("<br>", $errors);
-        $_SESSION['form_data'] = [
-            'leave_type' => $leave_type,
-            'start_date' => $start_date,
-            'end_date' => $end_date,
-            'reason' => $reason
-        ];
+        $leave_type_id = $row['id'];
     }
-    header("Location: attendance_dashboard.php");
-    exit;
+    $stmt->close();
+
+    // Now insert the leave request using leave_type_id
+    $stmt = $conn->prepare("INSERT INTO leave_requests 
+        (user_id, leave_type_id, leave_start_date, leave_end_date, leave_reason, request_date) 
+        VALUES (?, ?, ?, ?, ?, NOW())");
+    $stmt->bind_param("iisss", $user_id, $leave_type_id, $start_date, $end_date, $reason);
+
+    if ($stmt->execute()) {
+        $_SESSION['success'] = "Leave request submitted successfully!";
+    } else {
+        $_SESSION['error'] = "Error submitting request: " . $stmt->error;
+    }
+    $stmt->close();
+}
 }
 
 // Handle Time In/Out toggle
@@ -222,10 +232,14 @@ try {
 // Fetch leave requests
 $leave_requests = [];
 try {
-    $stmt = $conn->prepare("SELECT * FROM leave_requests 
-                          WHERE user_id = ? 
-                          ORDER BY request_date DESC");
-    $stmt->bind_param("s", $user_id);
+    $stmt = $conn->prepare("
+        SELECT lr.*, lrs.value
+        FROM leave_requests lr
+        JOIN leave_request_statuses lrs ON lr.status_id = lrs.id
+        WHERE lr.user_id = ?
+        ORDER BY lr.request_date DESC
+    ");
+    $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $result = $stmt->get_result();
     $leave_requests = $result->fetch_all(MYSQLI_ASSOC);
@@ -833,14 +847,6 @@ tbody tr:hover td {
                 <div class="stat-value"><?= $stats['present_days'] ?></div>
                 <div>Present Days</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-value"><?= $stats['current_streak'] ?></div>
-                <div>Current Streak</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value"><?= $stats['avg_hours'] ?></div>
-                <div>Average Hours</div>
-            </div>
         </div>
 
         <table>
@@ -849,7 +855,6 @@ tbody tr:hover td {
                     <th>Date</th>
                     <th>Time In</th>
                     <th>Time Out</th>
-                    <th>Duration</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -859,7 +864,6 @@ tbody tr:hover td {
                         <td><?= htmlspecialchars(date('M j, Y', strtotime($entry['check_in']))) ?></td>
                         <td><?= htmlspecialchars(date('h:i A', strtotime($entry['check_in']))) ?></td>
                         <td><?= $entry['check_out'] ? htmlspecialchars(date('h:i A', strtotime($entry['check_out']))) : '-' ?></td>
-                        <td><?= htmlspecialchars($entry['duration'] ?? '-') ?></td>
                         <td><?= htmlspecialchars(ucfirst($entry['status'])) ?></td>
                     </tr>
                 <?php endforeach; ?>
@@ -908,13 +912,13 @@ tbody tr:hover td {
             <tbody>
                 <?php foreach ($leave_requests as $request): ?>
                     <tr>
-                        <td><?= htmlspecialchars($request['leave_type']) ?></td>
-                        <td><?= htmlspecialchars(date('M j, Y', strtotime($request['start_date']))) ?></td>
-                        <td><?= htmlspecialchars(date('M j, Y', strtotime($request['end_date']))) ?></td>
-                        <td><?= htmlspecialchars($request['reason']) ?></td>
+                        <td><?= htmlspecialchars($request['leave_type_id']) ?></td>
+                        <td><?= htmlspecialchars(date('M j, Y', strtotime($request['leave_start_date']))) ?></td>
+                        <td><?= htmlspecialchars(date('M j, Y', strtotime($request['leave_end_date']))) ?></td>
+                        <td><?= htmlspecialchars($request['leave_reason']) ?></td>
                         <td>
-                            <span class="status-badge status-<?= strtolower($request['status']) ?>">
-                                <?= htmlspecialchars($request['status']) ?>
+                            <span class="status-badge status-<?= strtolower($request['value']) ?>">
+                                <?= htmlspecialchars($request['value']) ?>
                             </span>
                         </td>
                         <td><?= htmlspecialchars(date('M j, Y h:i A', strtotime($request['request_date']))) ?></td>
